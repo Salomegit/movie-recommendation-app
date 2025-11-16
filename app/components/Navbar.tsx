@@ -89,12 +89,16 @@ export default function Navbar() {
           </Logo>
         </Link>
         
+        
         <NavLinks>
           <NavLink href="/" $isActive={pathname === '/'}>
             Home
           </NavLink>
           <NavLink href="/favorites" $isActive={pathname === '/favorites'}>
             Favorites
+          </NavLink>
+           <NavLink href="/popular" $isActive={pathname === '/popular'}>
+            <span>Popular</span>
           </NavLink>
         </NavLinks>
       </Container>

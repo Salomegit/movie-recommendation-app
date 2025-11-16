@@ -35,16 +35,16 @@ export async function apiFetch<T>({ endpoint, method = 'GET', params }: ApiFetch
   return response.json();
 }
 
-// API Functions
+
 export const movieApi = {
-  // Get Top 250 Movies
+  
   getTop250Movies: () => apiFetch<any>({ endpoint: `/top250-movies` }),
   
-  // Get Movie Details by IMDb ID
+  
   getMovieDetails: (imdbId: string) => 
     apiFetch<any>({ endpoint: `/${imdbId}` }),
   
-  // Search Movies
+ 
   searchMovies: (query: string) => 
     apiFetch<any>({ 
       endpoint: '/imdb/search',
@@ -57,5 +57,5 @@ export const movieApi = {
   
   // Get Most Popular Movies
   getMostPopularMovies: () => 
-    apiFetch<any>({ endpoint: '/imdb/most-popular-movies' }),
+    apiFetch<any>({ endpoint: '/most-popular-movies' }),
 };
