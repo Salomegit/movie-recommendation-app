@@ -1,65 +1,186 @@
-import Image from "next/image";
+// app/page.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { movieApi } from '../app/lib/api';
+import { Movie } from '../app/types/movie';
+import Navbar from '../app/components/Navbar';
+import SearchBar from '../app/components/SearchBar';
+import MovieGrid from '../app/components/MovieGrid';
+
+const MOVIES_PER_PAGE = 10;
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  background: #0a0a0a;
+`;
+
+const Container = styled.main`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px;
+`;
+
+const Hero = styled.section`
+  text-align: center;
+  margin-bottom: 50px;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
+  border-radius: 16px;
+`;
+
+const Title = styled.h1`
+  font-size: 48px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 16px 0;
+
+  @media (max-width: 768px) {
+    font-size: 36px;
+  }
+`;
+
+const Subtitle = styled.p`
+  font-size: 18px;
+  color: #999;
+  margin: 0 0 40px 0;
+
+  @media (max-width: 768px) {
+    font-size: 16px;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  color: #999;
+`;
+
+const Spinner = styled.div`
+  border: 4px solid #333;
+  border-top: 4px solid #e50914;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const ErrorMessage = styled.div`
+  background: rgba(229, 9, 20, 0.1);
+  border: 1px solid #e50914;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  color: #ff6b6b;
+  margin: 20px 0;
+`;
 
 export default function Home() {
+  const [allMovies, setAllMovies] = useState<Movie[]>([]);
+  const [filteredMovies, setFilteredMovies] = useState<Movie[]>([]);
+  const [displayCount, setDisplayCount] = useState(MOVIES_PER_PAGE);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    loadMovies();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = allMovies.filter(movie =>
+        movie.primaryTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        movie.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        movie.genres?.some(genre => genre.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setFilteredMovies(filtered);
+      setDisplayCount(MOVIES_PER_PAGE); // Reset display count on search
+    } else {
+      setFilteredMovies(allMovies);
+    }
+  }, [searchQuery, allMovies]);
+
+  const loadMovies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await movieApi.getTop250Movies();
+      
+      // The API returns an array directly
+      if (Array.isArray(data)) {
+        setAllMovies(data);
+        setFilteredMovies(data);
+      } else {
+        setError('Invalid data format received from API');
+      }
+    } catch (err) {
+      console.error('Error loading movies:', err);
+      setError('Failed to load movies. Please check your API configuration.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    setLoadingMore(true);
+    // Simulate a slight delay for better UX
+    setTimeout(() => {
+      setDisplayCount(prev => prev + MOVIES_PER_PAGE);
+      setLoadingMore(false);
+    }, 300);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const hasMore = displayCount < filteredMovies.length;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <PageContainer>
+      <Navbar />
+      <Container>
+        <Hero>
+          <Title>Discover Amazing Movies</Title>
+          <Subtitle>
+            Browse through the top-rated movies of all time
+          </Subtitle>
+          <SearchBar onSearch={handleSearch} />
+        </Hero>
+
+        {loading && (
+          <LoadingContainer>
+            <Spinner />
+          </LoadingContainer>
+        )}
+
+        {error && (
+          <ErrorMessage>
+            {error}
+          </ErrorMessage>
+        )}
+
+        {!loading && !error && (
+          <MovieGrid 
+            movies={filteredMovies} 
+            displayCount={displayCount}
+            title={searchQuery ? `Search Results (${filteredMovies.length})` : 'Top 250 Movies'}
+            onLoadMore={handleLoadMore}
+            hasMore={hasMore}
+            loading={loadingMore}
+          />
+        )}
+      </Container>
+    </PageContainer>
   );
 }

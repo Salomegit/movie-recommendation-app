@@ -1,33 +1,61 @@
-import axios from 'axios';
+// lib/api.ts
+const RAPIDAPI_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY;
+const RAPIDAPI_HOST = process.env.NEXT_PUBLIC_RAPIDAPI_HOST;
+const BASE_URL = `https://${RAPIDAPI_HOST}/api/imdb`;
 
-const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
-const BASE_URL = process.env.NEXT_PUBLIC_TMDB_BASE_URL;
+interface ApiFetchOptions {
+  endpoint: string;
+  method?: string;
+  params?: Record<string, string>;
+}
 
-export const tmdbApi = axios.create({
-  baseURL: BASE_URL,
-  params: {
-    api_key: API_KEY,
-  },
-});
+export async function apiFetch<T>({ endpoint, method = 'GET', params }: ApiFetchOptions): Promise<T> {
+  if (!RAPIDAPI_KEY || !RAPIDAPI_HOST) {
+    throw new Error('API keys are not configured. Please check your .env.local file.');
+  }
 
-export const getTrendingMovies = async () => {
-  const response = await tmdbApi.get('/trending/movie/week');
-  return response.data.results;
-};
+  const url = new URL(`${BASE_URL}${endpoint}`);
+  
+  if (params) {
+    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+  }
 
-export const getMovieDetails = async (id: string) => {
-  const response = await tmdbApi.get(`/movie/${id}`);
-  return response.data;
-};
-
-export const searchMovies = async (query: string) => {
-  const response = await tmdbApi.get('/search/movie', {
-    params: { query },
+  const response = await fetch(url.toString(), {
+    method,
+    headers: {
+      'x-rapidapi-host': RAPIDAPI_HOST,
+      'x-rapidapi-key': RAPIDAPI_KEY,
+    },
   });
-  return response.data.results;
-};
 
-export const getRecommendations = async (id: string) => {
-  const response = await tmdbApi.get(`/movie/${id}/recommendations`);
-  return response.data.results;
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// API Functions
+export const movieApi = {
+  // Get Top 250 Movies
+  getTop250Movies: () => apiFetch<any>({ endpoint: `/top250-movies` }),
+  
+  // Get Movie Details by IMDb ID
+  getMovieDetails: (imdbId: string) => 
+    apiFetch<any>({ endpoint: `/${imdbId}` }),
+  
+  // Search Movies
+  searchMovies: (query: string) => 
+    apiFetch<any>({ 
+      endpoint: '/imdb/search',
+      params: { query }
+    }),
+  
+  // Get Top Box Office
+  getTopBoxOffice: () => 
+    apiFetch<any>({ endpoint: '/imdb/top-box-office' }),
+  
+  // Get Most Popular Movies
+  getMostPopularMovies: () => 
+    apiFetch<any>({ endpoint: '/imdb/most-popular-movies' }),
 };
