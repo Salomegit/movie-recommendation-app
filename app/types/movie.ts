@@ -41,16 +41,15 @@ export interface Movie {
 }
 
 export interface FavoriteMovie {
-  id: number;  // TMDB uses numbers for IDs
+  id: number;  
   title: string;
-  image: string;  // Full poster URL
+  image: string;  
   rating: number;
   year: number | undefined;
   savedAt: string;
 }
 
 
-// lib/types.ts (or add to your api.ts file)
 
 export interface MovieTM {
   adult: boolean;
