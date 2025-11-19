@@ -2,11 +2,11 @@
 'use client';
 
 import styled from 'styled-components';
-import { Movie } from '../types/movie';
+import { MovieTM } from '../types/movie';
 import MovieCard from './MovieCard';
 
 interface MovieGridProps {
-  movies: Movie[];
+  movies: MovieTM[];
   title?: string;
   displayCount?: number;
   onLoadMore?: () => void;

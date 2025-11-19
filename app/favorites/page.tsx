@@ -217,7 +217,7 @@ export default function FavoritesPage() {
     ));
   };
 
-  const handleRemove = (e: React.MouseEvent, movieId: string) => {
+  const handleRemove = (e: React.MouseEvent, movieId: number) => {
     e.preventDefault();
     e.stopPropagation();
     storage.removeFavorite(movieId);

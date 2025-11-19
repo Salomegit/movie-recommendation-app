@@ -4,11 +4,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import styled from 'styled-components';
-import { Movie } from '../types/movie';
+import { MovieTM } from '../types/movie';
 import { storage } from '../lib/storage';
 
 interface MovieCardProps {
-  movie: Movie;
+  movie: MovieTM;
+  genres?: { id: number; name: string }[];
 }
 
 const Card = styled.div`
@@ -146,7 +147,7 @@ const Genre = styled.span`
   font-size: 12px;
 `;
 
-export default function MovieCard({ movie }: MovieCardProps) {
+export default function MovieCard({ movie, genres = [] }: MovieCardProps) {
   const [isFavorite, setIsFavorite] = useState(storage.isFavorite(movie.id));
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -159,15 +160,28 @@ export default function MovieCard({ movie }: MovieCardProps) {
     } else {
       storage.addFavorite({
         id: movie.id,
-        title: movie.primaryTitle,
-        image: movie.primaryImage,
-        rating: movie.averageRating,
-        year: movie.startYear,
+        title: movie.title,
+        image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.jpg',
+        rating: movie.vote_average,
+        year: movie.release_date ? new Date(movie.release_date).getFullYear():undefined,
         savedAt: new Date().toISOString(),
       });
       setIsFavorite(true);
     }
   };
+
+  // Get poster URL from TMDB
+  const posterUrl = movie.poster_path 
+    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+    : '/placeholder.jpg';
+
+  // Extract year from release_date
+  const year = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
+
+  // Map genre IDs to genre names
+  const movieGenres = movie.genre_ids
+    ?.map(id => genres.find(g => g.id === id)?.name)
+    .filter(Boolean) || [];
 
   return (
     <Link href={`/movies/${movie.id}`} style={{ textDecoration: 'none' }}>
@@ -182,15 +196,15 @@ export default function MovieCard({ movie }: MovieCardProps) {
         
         <ImageContainer>
           <Image 
-            src={movie.primaryImage} 
-            alt={movie.primaryTitle}
+            src={posterUrl} 
+            alt={movie.title}
             loading="lazy"
           />
           <Overlay className="overlay">
             <OverlayContent>
-              <Description>{movie.description}</Description>
+              <Description>{movie.overview}</Description>
               <Genres>
-                {movie.genres?.slice(0, 3).map((genre) => (
+                {movieGenres.slice(0, 3).map((genre) => (
                   <Genre key={genre}>{genre}</Genre>
                 ))}
               </Genres>
@@ -199,11 +213,11 @@ export default function MovieCard({ movie }: MovieCardProps) {
         </ImageContainer>
         
         <Info>
-          <Title>{movie.primaryTitle}</Title>
+          <Title>{movie.title}</Title>
           <Meta>
-            <Year>{movie.startYear}</Year>
+            <Year>{year}</Year>
             <Rating>
-              ⭐ {movie.averageRating?.toFixed(1)}
+              ⭐ {movie.vote_average?.toFixed(1)}
             </Rating>
           </Meta>
         </Info>

@@ -1,7 +1,7 @@
 // lib/api.ts
-const RAPIDAPI_KEY = process.env.NEXT_PUBLIC_RAPIDAPI_KEY;
-const RAPIDAPI_HOST = process.env.NEXT_PUBLIC_RAPIDAPI_HOST;
-const BASE_URL = `https://${RAPIDAPI_HOST}/api/imdb`;
+const TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_ACCESS_TOKEN;
+const BASE_URL = 'https://api.themoviedb.org/3';
+import {MoviesResponse,GenresResponse} from "../types/movie"
 
 interface ApiFetchOptions {
   endpoint: string;
@@ -10,8 +10,8 @@ interface ApiFetchOptions {
 }
 
 export async function apiFetch<T>({ endpoint, method = 'GET', params }: ApiFetchOptions): Promise<T> {
-  if (!RAPIDAPI_KEY || !RAPIDAPI_HOST) {
-    throw new Error('API keys are not configured. Please check your .env.local file.');
+  if (!TMDB_ACCESS_TOKEN) {
+    throw new Error('TMDB access token is not configured. Please check your .env.local file.');
   }
 
   const url = new URL(`${BASE_URL}${endpoint}`);
@@ -23,8 +23,8 @@ export async function apiFetch<T>({ endpoint, method = 'GET', params }: ApiFetch
   const response = await fetch(url.toString(), {
     method,
     headers: {
-      'x-rapidapi-host': RAPIDAPI_HOST,
-      'x-rapidapi-key': RAPIDAPI_KEY,
+      'accept': 'application/json',
+      'Authorization': `Bearer ${TMDB_ACCESS_TOKEN}`,
     },
   });
 
@@ -35,27 +35,47 @@ export async function apiFetch<T>({ endpoint, method = 'GET', params }: ApiFetch
   return response.json();
 }
 
-
 export const movieApi = {
-  
-  getTop250Movies: () => apiFetch<any>({ endpoint: `/top250-movies` }),
-  
-  
-  getMovieDetails: (imdbId: string) => 
-    apiFetch<any>({ endpoint: `/${imdbId}` }),
-  
- 
-  searchMovies: (query: string) => 
-    apiFetch<any>({ 
-      endpoint: '/imdb/search',
-      params: { query }
+  // Get popular movies
+  getMovies: (page: number = 1) => 
+    apiFetch<MoviesResponse>({ 
+      endpoint: '/discover/movie',
+      params: {
+        include_adult: 'false',
+        include_video: 'false',
+        language: 'en-US',
+        page: page.toString(),
+        sort_by: 'popularity.desc'
+      }
     }),
   
-  // Get Top Box Office
-  getTopBoxOffice: () => 
-    apiFetch<any>({ endpoint: '/imdb/top-box-office' }),
+  // Get movie recommendations
+  getRecommendations: (movieId: number, page: number = 1) =>
+    apiFetch<MoviesResponse>({
+      endpoint: `/movie/${movieId}/recommendations`,
+      params: {
+        language: 'en-US',
+        page: page.toString()
+      }
+    }),
   
-  // Get Most Popular Movies
-  getMostPopularMovies: () => 
-    apiFetch<any>({ endpoint: '/most-popular-movies' }),
+  // Get similar movies
+  getSimilarMovies: (movieId: number, page: number = 1) =>
+    apiFetch<MoviesResponse>({
+      endpoint: `/movie/${movieId}/similar`,
+      params: {
+        language: 'en-US',
+        page: page.toString()
+      }
+    }),
+  
+  // Get movie genres
+  getGenres: () =>
+    apiFetch<GenresResponse>({
+      endpoint: '/genre/movie/list',
+      params: {
+        language: 'en-US'
+      }
+    }),
 };
+

@@ -1,12 +1,13 @@
 // app/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { movieApi } from '../app/lib/api';
-import { Movie } from '../app/types/movie';
+import { MovieTM, Genre } from '../app/types/movie';
 import Navbar from '../app/components/Navbar';
 import SearchBar from '../app/components/SearchBar';
+import GenreFilter from '../app/components/GenreFilter';
 import MovieGrid from '../app/components/MovieGrid';
 
 const MOVIES_PER_PAGE = 10;
@@ -51,6 +52,13 @@ const Subtitle = styled.p`
   }
 `;
 
+const FiltersSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 40px;
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -83,43 +91,101 @@ const ErrorMessage = styled.div`
   margin: 20px 0;
 `;
 
+const ActiveFilters = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+`;
+
+const FilterTag = styled.div`
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid #e50914;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ClearButton = styled.button`
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  
+  &:hover {
+    color: #e50914;
+  }
+`;
+
 export default function Home() {
-  const [allMovies, setAllMovies] = useState<Movie[]>([]);
-  const [filteredMovies, setFilteredMovies] = useState<Movie[]>([]);
+  const [allMovies, setAllMovies] = useState<MovieTM[]>([]);
+  const [filteredMovies, setFilteredMovies] = useState<MovieTM[]>([]);
   const [displayCount, setDisplayCount] = useState(MOVIES_PER_PAGE);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('');
+  const [genres, setGenres] = useState<Genre[]>([]);
+
+  // Get genre names for filter dropdown
+  const availableGenres = useMemo(() => {
+    return genres.map(g => g.name).sort();
+  }, [genres]);
 
   useEffect(() => {
-    loadMovies();
+    loadInitialData();
   }, []);
 
   useEffect(() => {
-    if (searchQuery) {
-      const filtered = allMovies.filter(movie =>
-        movie.primaryTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        movie.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        movie.genres?.some(genre => genre.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      setFilteredMovies(filtered);
-      setDisplayCount(MOVIES_PER_PAGE); // Reset display count on search
-    } else {
-      setFilteredMovies(allMovies);
-    }
-  }, [searchQuery, allMovies]);
+    let filtered = allMovies;
 
-  const loadMovies = async () => {
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(movie =>
+        movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        movie.overview?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply genre filter
+    if (selectedGenre) {
+      const genreId = genres.find(g => g.name === selectedGenre)?.id;
+      if (genreId) {
+        filtered = filtered.filter(movie =>
+          movie.genre_ids?.includes(genreId)
+        );
+      }
+    }
+
+    setFilteredMovies(filtered);
+    setDisplayCount(MOVIES_PER_PAGE); // Reset display count when filters change
+  }, [searchQuery, selectedGenre, allMovies, genres]);
+
+  const loadInitialData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await movieApi.getTop250Movies();
       
-      // The API returns an array directly
-      if (Array.isArray(data)) {
-        setAllMovies(data);
-        setFilteredMovies(data);
+      // Load genres first
+      const genresData = await movieApi.getGenres();
+      setGenres(genresData.genres);
+      
+      // Load movies
+      const moviesData = await movieApi.getMovies();
+      
+      if (moviesData.results && Array.isArray(moviesData.results)) {
+        setAllMovies(moviesData.results);
+        setFilteredMovies(moviesData.results);
       } else {
         setError('Invalid data format received from API');
       }
@@ -133,7 +199,6 @@ export default function Home() {
 
   const handleLoadMore = () => {
     setLoadingMore(true);
-    // Simulate a slight delay for better UX
     setTimeout(() => {
       setDisplayCount(prev => prev + MOVIES_PER_PAGE);
       setLoadingMore(false);
@@ -144,19 +209,78 @@ export default function Home() {
     setSearchQuery(query);
   };
 
+  const handleGenreChange = (genre: string) => {
+    setSelectedGenre(genre);
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedGenre('');
+  };
+
+  const hasActiveFilters = searchQuery || selectedGenre;
   const hasMore = displayCount < filteredMovies.length;
+
+  const getGridTitle = () => {
+    if (searchQuery && selectedGenre) {
+      return `${selectedGenre} Movies - Search Results (${filteredMovies.length})`;
+    } else if (searchQuery) {
+      return `Search Results (${filteredMovies.length})`;
+    } else if (selectedGenre) {
+      return `${selectedGenre} Movies (${filteredMovies.length})`;
+    } else {
+      return 'Popular Movies';
+    }
+  };
 
   return (
     <PageContainer>
       <Navbar />
       <Container>
         <Hero>
-          <Title>Discover Amazing Movies</Title>
+          <Title>The Ultimate Movie Collection</Title>
           <Subtitle>
-            Browse through the top-rated movies of all time
+            Discover the most popular movies • Powered by The Movie Database
           </Subtitle>
           <SearchBar onSearch={handleSearch} />
         </Hero>
+
+        {!loading && (
+          <FiltersSection>
+            <GenreFilter 
+              genres={availableGenres}
+              selectedGenre={selectedGenre}
+              onGenreChange={handleGenreChange}
+            />
+            
+            {hasActiveFilters && (
+              <ActiveFilters>
+                {searchQuery && (
+                  <FilterTag>
+                    Search: "{searchQuery}"
+                    <ClearButton onClick={() => setSearchQuery('')}>×</ClearButton>
+                  </FilterTag>
+                )}
+                {selectedGenre && (
+                  <FilterTag>
+                    Genre: {selectedGenre}
+                    <ClearButton onClick={() => setSelectedGenre('')}>×</ClearButton>
+                  </FilterTag>
+                )}
+                <ClearButton 
+                  onClick={clearFilters}
+                  style={{ 
+                    textDecoration: 'underline', 
+                    fontSize: '14px',
+                    color: '#e50914'
+                  }}
+                >
+                  Clear All Filters
+                </ClearButton>
+              </ActiveFilters>
+            )}
+          </FiltersSection>
+        )}
 
         {loading && (
           <LoadingContainer>
@@ -174,10 +298,11 @@ export default function Home() {
           <MovieGrid 
             movies={filteredMovies} 
             displayCount={displayCount}
-            title={searchQuery ? `Search Results (${filteredMovies.length})` : 'Top 250 Movies'}
+            title={getGridTitle()}
             onLoadMore={handleLoadMore}
             hasMore={hasMore}
             loading={loadingMore}
+            // genres={genres}
           />
         )}
       </Container>

@@ -39,7 +39,7 @@ export const storage = {
   },
 
   // Remove a movie from favorites
-  removeFavorite: (movieId: string): boolean => {
+  removeFavorite: (movieId: number): boolean => {  // Changed to number
     if (typeof window === 'undefined') return false;
     
     try {
@@ -54,7 +54,7 @@ export const storage = {
   },
 
   // Check if a movie is in favorites
-  isFavorite: (movieId: string): boolean => {
+  isFavorite: (movieId: number): boolean => {  // Changed to number
     if (typeof window === 'undefined') return false;
     
     const favorites = storage.getFavorites();

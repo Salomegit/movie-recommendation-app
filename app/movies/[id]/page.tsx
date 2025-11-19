@@ -1,6 +1,7 @@
 // app/movies/[id]/page.tsx
 'use client';
-
+import { getRecommendationsForMovie } from '../../lib/recommendation';
+import MovieCard from '../../components/MovieCard';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import styled from 'styled-components';
@@ -16,7 +17,7 @@ const PageContainer = styled.div`
 
 const BackButton = styled.button`
   background: rgba(255, 255, 255, 0.1);
-  border: none;
+  border: none; 
   color: #fff;
   padding: 12px 24px;
   border-radius: 8px;
@@ -228,12 +229,49 @@ const Spinner = styled.div`
   }
 `;
 
+const SimilarSection = styled.section`
+  margin-top: 60px;
+  padding-top: 40px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+`;
+
+const SimilarTitle = styled.h2`
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 30px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &::before {
+    content: '🎬';
+    font-size: 32px;
+  }
+`;
+
+const SimilarGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+`;
 export default function MovieDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  
 
   useEffect(() => {
     if (params.id) {

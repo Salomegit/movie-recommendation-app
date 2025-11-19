@@ -41,10 +41,46 @@ export interface Movie {
 }
 
 export interface FavoriteMovie {
-  id: string;
+  id: number;  // TMDB uses numbers for IDs
   title: string;
-  image: string;
+  image: string;  // Full poster URL
   rating: number;
-  year: number;
+  year: number | undefined;
   savedAt: string;
+}
+
+
+// lib/types.ts (or add to your api.ts file)
+
+export interface MovieTM {
+  adult: boolean;
+  backdrop_path: string | null;
+  genre_ids: number[];
+  id: number;
+  original_language: string;
+  original_title: string;
+  overview: string;
+  popularity: number;
+  poster_path: string | null;
+  release_date: string;
+  title: string;
+  video: boolean;
+  vote_average: number;
+  vote_count: number;
+}
+
+export interface MoviesResponse {
+  page: number;
+  results: MovieTM[];
+  total_pages: number;
+  total_results: number;
+}
+
+export interface Genre {
+  id: number;
+  name: string;
+}
+
+export interface GenresResponse {
+  genres: Genre[];
 }
