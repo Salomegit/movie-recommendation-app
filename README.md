@@ -70,8 +70,7 @@ movie-recommendation-app/
 │   │       └── page.tsx      # Dynamic movie detail page
 │   ├── globals.css           # Global styles
 │   ├── layout.tsx            # Root layout
-│   ├── page.tsx              # Home page
-│   └── registry.tsx          # Styled Components registry
+│   ├── page.tsx              # Home page    
 ├── components/
 │   ├── MovieCard.tsx         # Movie card component
 │   ├── MovieGrid.tsx  
