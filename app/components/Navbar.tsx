@@ -106,10 +106,10 @@ export default function Navbar() {
             <Icon>🏠</Icon>
             <span>Home</span>
           </NavLink>
-          <NavLink href="/popular" $isActive={pathname === '/popular'}>
+          {/* <NavLink href="/popular" $isActive={pathname === '/popular'}>
             <Icon>🔥</Icon>
             <span>Popular</span>
-          </NavLink>
+          </NavLink> */}
           <NavLink href="/recommendations" $isActive={pathname === '/recommendations'}>
             <Icon>🎯</Icon>
             <span>For You</span>

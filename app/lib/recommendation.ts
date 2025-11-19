@@ -1,18 +1,17 @@
-// lib/recommendations.ts
-import { Movie } from '../types/movie';
+// lib/recommendation.ts
+import { MovieTM } from '../types/movie';
 
 export interface RecommendationResult {
-  movie: Movie;
+  movie: MovieTM;
   score: number;
   reason: string;
 }
 
-
-function calculateGenreSimilarity(movie1: Movie, movie2: Movie): number {
-  if (!movie1.genres || !movie2.genres) return 0;
+function calculateGenreSimilarity(movie1: MovieTM, movie2: MovieTM): number {
+  if (!movie1.genre_ids || !movie2.genre_ids) return 0;
   
-  const genres1 = new Set(movie1.genres);
-  const genres2 = new Set(movie2.genres);
+  const genres1 = new Set(movie1.genre_ids);
+  const genres2 = new Set(movie2.genre_ids);
   
   const intersection = new Set([...genres1].filter(g => genres2.has(g)));
   const union = new Set([...genres1, ...genres2]);
@@ -20,26 +19,27 @@ function calculateGenreSimilarity(movie1: Movie, movie2: Movie): number {
   return intersection.size / union.size; // Jaccard similarity
 }
 
-
-function calculateRatingSimilarity(movie1: Movie, movie2: Movie): number {
-  if (!movie1.averageRating || !movie2.averageRating) return 0;
+function calculateRatingSimilarity(movie1: MovieTM, movie2: MovieTM): number {
+  if (!movie1.vote_average || !movie2.vote_average) return 0;
   
-  const diff = Math.abs(movie1.averageRating - movie2.averageRating);
+  const diff = Math.abs(movie1.vote_average - movie2.vote_average);
   return Math.max(0, 1 - (diff / 10)); // Normalize to 0-1
 }
 
-
-function calculateYearSimilarity(movie1: Movie, movie2: Movie): number {
-  if (!movie1.startYear || !movie2.startYear) return 0;
+function calculateYearSimilarity(movie1: MovieTM, movie2: MovieTM): number {
+  const year1 = movie1.release_date ? new Date(movie1.release_date).getFullYear() : 0;
+  const year2 = movie2.release_date ? new Date(movie2.release_date).getFullYear() : 0;
   
-  const yearDiff = Math.abs(movie1.startYear - movie2.startYear);
-  return Math.max(0, 1 - (yearDiff / 50)); // Movies within 50 years are considered
+  if (!year1 || !year2) return 0;
+  
+  const yearDiff = Math.abs(year1 - year2);
+  return Math.max(0, 1 - (yearDiff / 50)); 
 }
 
-
 export function getRecommendationsForMovie(
-  targetMovie: Movie,
-  allMovies: Movie[],
+  targetMovie: MovieTM,
+  allMovies: MovieTM[],
+  genres: Array<{ id: number; name: string }>,
   limit: number = 10
 ): RecommendationResult[] {
   const recommendations: RecommendationResult[] = [];
@@ -57,15 +57,20 @@ export function getRecommendationsForMovie(
     const score = (genreSim * 0.5) + (ratingSim * 0.3) + (yearSim * 0.2);
     
     if (score > 0.3) { // Minimum threshold
-      const commonGenres = targetMovie.genres?.filter(g => 
-        movie.genres?.includes(g)
+      const commonGenreIds = targetMovie.genre_ids?.filter(g => 
+        movie.genre_ids?.includes(g)
       ) || [];
+      
+      const commonGenreNames = commonGenreIds
+        .map(id => genres.find(g => g.id === id)?.name)
+        .filter(Boolean)
+        .slice(0, 2);
       
       recommendations.push({
         movie,
         score,
-        reason: commonGenres.length > 0 
-          ? `Similar ${commonGenres.slice(0, 2).join(', ')} movie`
+        reason: commonGenreNames.length > 0 
+          ? `Similar ${commonGenreNames.join(', ')} movie`
           : 'Similar style and era'
       });
     }
@@ -81,8 +86,9 @@ export function getRecommendationsForMovie(
  * Get recommendations based on user's favorite movies
  */
 export function getRecommendationsFromFavorites(
-  favoriteMovieIds: string[],
-  allMovies: Movie[],
+  favoriteMovieIds: number[],
+  allMovies: MovieTM[],
+  genres: Array<{ id: number; name: string }>,
   limit: number = 10
 ): RecommendationResult[] {
   if (favoriteMovieIds.length === 0) return [];
@@ -91,21 +97,25 @@ export function getRecommendationsFromFavorites(
   if (favoriteMovies.length === 0) return [];
   
   // Analyze user preferences
-  const genreFrequency = new Map<string, number>();
+  const genreFrequency = new Map<number, number>();
   let totalRating = 0;
   
   favoriteMovies.forEach(movie => {
-    movie.genres?.forEach(genre => {
-      genreFrequency.set(genre, (genreFrequency.get(genre) || 0) + 1);
+    movie.genre_ids?.forEach((genreId: number) => {
+      genreFrequency.set(genreId, (genreFrequency.get(genreId) || 0) + 1);
     });
-    totalRating += movie.averageRating || 0;
+    totalRating += movie.vote_average || 0;
   });
   
   const avgRating = totalRating / favoriteMovies.length;
-  const topGenres = Array.from(genreFrequency.entries())
+  const topGenreIds = Array.from(genreFrequency.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
-    .map(([genre]) => genre);
+    .map(([genreId]) => genreId);
+  
+  const topGenreNames = topGenreIds
+    .map(id => genres.find(g => g.id === id)?.name)
+    .filter(Boolean);
   
   // Score each movie based on user preferences
   const recommendations: RecommendationResult[] = [];
@@ -118,28 +128,31 @@ export function getRecommendationsFromFavorites(
     let reasons: string[] = [];
     
     // Genre matching (most important)
-    const matchingGenres = movie.genres?.filter(g => topGenres.includes(g)) || [];
-    if (matchingGenres.length > 0) {
-      score += matchingGenres.length * 0.4;
-      reasons.push(`${matchingGenres.join(', ')} fan favorite`);
+    const matchingGenreIds = movie.genre_ids?.filter((g: number) => topGenreIds.includes(g)) || [];
+    if (matchingGenreIds.length > 0) {
+      score += matchingGenreIds.length * 0.4;
+      const matchingGenreNames = matchingGenreIds
+        .map((id: number) => genres.find(g => g.id === id)?.name)
+        .filter(Boolean);
+      reasons.push(`${matchingGenreNames.join(', ')} fan favorite`);
     }
     
     // Rating similarity
-    if (movie.averageRating) {
-      const ratingDiff = Math.abs(movie.averageRating - avgRating);
+    if (movie.vote_average) {
+      const ratingDiff = Math.abs(movie.vote_average - avgRating);
       if (ratingDiff < 1.5) {
         score += 0.3;
       }
     }
     
     // High rating bonus
-    if (movie.averageRating && movie.averageRating >= 8.0) {
+    if (movie.vote_average && movie.vote_average >= 8.0) {
       score += 0.2;
       reasons.push('Highly rated');
     }
     
     // Popularity bonus
-    if (movie.numVotes && movie.numVotes > 500000) {
+    if (movie.vote_count && movie.vote_count > 5000) {
       score += 0.1;
       reasons.push('Popular choice');
     }
@@ -162,29 +175,34 @@ export function getRecommendationsFromFavorites(
  * Get recommendations based on genre preferences
  */
 export function getRecommendationsByGenres(
-  preferredGenres: string[],
-  allMovies: Movie[],
+  preferredGenreIds: number[],
+  allMovies: MovieTM[],
+  genres: Array<{ id: number; name: string }>,
   limit: number = 10
 ): RecommendationResult[] {
-  if (preferredGenres.length === 0) return [];
+  if (preferredGenreIds.length === 0) return [];
   
   const recommendations: RecommendationResult[] = [];
   
   for (const movie of allMovies) {
-    const matchingGenres = movie.genres?.filter(g => 
-      preferredGenres.includes(g)
+    const matchingGenreIds = movie.genre_ids?.filter(g => 
+      preferredGenreIds.includes(g)
     ) || [];
     
-    if (matchingGenres.length > 0) {
+    if (matchingGenreIds.length > 0) {
       // Score based on number of matching genres and rating
-      const genreScore = matchingGenres.length / preferredGenres.length;
-      const ratingScore = (movie.averageRating || 0) / 10;
+      const genreScore = matchingGenreIds.length / preferredGenreIds.length;
+      const ratingScore = (movie.vote_average || 0) / 10;
       const score = (genreScore * 0.6) + (ratingScore * 0.4);
+      
+      const matchingGenreNames = matchingGenreIds
+        .map(id => genres.find(g => g.id === id)?.name)
+        .filter(Boolean);
       
       recommendations.push({
         movie,
         score,
-        reason: `Top ${matchingGenres.join(', ')} pick`
+        reason: `Top ${matchingGenreNames.join(', ')} pick`
       });
     }
   }
@@ -198,7 +216,7 @@ export function getRecommendationsByGenres(
  * Get trending recommendations (popular + recent + highly rated)
  */
 export function getTrendingRecommendations(
-  allMovies: Movie[],
+  allMovies: MovieTM[],
   limit: number = 10
 ): RecommendationResult[] {
   const currentYear = new Date().getFullYear();
@@ -209,25 +227,31 @@ export function getTrendingRecommendations(
     let reasons: string[] = [];
     
     // Rating component
-    if (movie.averageRating) {
-      score += (movie.averageRating / 10) * 0.4;
-      if (movie.averageRating >= 8.5) {
+    if (movie.vote_average) {
+      score += (movie.vote_average / 10) * 0.4;
+      if (movie.vote_average >= 8.5) {
         reasons.push('Exceptional rating');
       }
     }
     
-    // Popularity component
-    if (movie.numVotes) {
-      const popularityScore = Math.min(movie.numVotes / 1000000, 1);
+    // Popularity component (using popularity score from TMDB)
+    if (movie.popularity) {
+      const popularityScore = Math.min(movie.popularity / 1000, 1);
       score += popularityScore * 0.3;
-      if (movie.numVotes > 1000000) {
+      if (movie.popularity > 500) {
         reasons.push('Highly popular');
       }
     }
     
+    // Vote count component
+    if (movie.vote_count && movie.vote_count > 10000) {
+      score += 0.1;
+    }
+    
     // Recency component
-    if (movie.startYear) {
-      const yearDiff = currentYear - movie.startYear;
+    if (movie.release_date) {
+      const movieYear = new Date(movie.release_date).getFullYear();
+      const yearDiff = currentYear - movieYear;
       if (yearDiff <= 5) {
         score += 0.3;
         reasons.push('Recent release');
@@ -252,12 +276,13 @@ export function getTrendingRecommendations(
  * Get "Because you watched X" recommendations
  */
 export function getBecauseYouWatchedRecommendations(
-  watchedMovieId: string,
-  allMovies: Movie[],
+  watchedMovieId: number,
+  allMovies: MovieTM[],
+  genres: Array<{ id: number; name: string }>,
   limit: number = 6
 ): RecommendationResult[] {
   const watchedMovie = allMovies.find(m => m.id === watchedMovieId);
   if (!watchedMovie) return [];
   
-  return getRecommendationsForMovie(watchedMovie, allMovies, limit);
+  return getRecommendationsForMovie(watchedMovie, allMovies, genres, limit);
 }

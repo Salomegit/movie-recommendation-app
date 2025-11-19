@@ -1,14 +1,13 @@
 // app/movies/[id]/page.tsx
 'use client';
-import { getRecommendationsForMovie } from '../../lib/recommendation';
-import MovieCard from '../../components/MovieCard';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { movieApi } from '../../lib/api';
 import { storage } from '../../lib/storage';
-import { Movie } from '../../types/movie';
+import { MovieTM } from '../../types/movie';
 import Navbar from '../../components/Navbar';
+import MovieCard from '../../components/MovieCard';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -265,17 +264,31 @@ const SimilarGrid = styled.div`
     gap: 12px;
   }
 `;
+
+interface MovieDetails extends MovieTM {
+  runtime?: number;
+  budget?: number;
+  revenue?: number;
+  production_companies?: Array<{ id: number; name: string; logo_path: string | null }>;
+  production_countries?: Array<{ iso_3166_1: string; name: string }>;
+  spoken_languages?: Array<{ iso_639_1: string; name: string }>;
+  status?: string;
+  tagline?: string;
+  genres?: Array<{ id: number; name: string }>;
+}
+
 export default function MovieDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [movie, setMovie] = useState<Movie | null>(null);
+  const [movie, setMovie] = useState<MovieDetails | null>(null);
+  const [similarMovies, setSimilarMovies] = useState<MovieTM[]>([]);
+  const [genresList, setGenresList] = useState<Array<{ id: number; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
-  
 
   useEffect(() => {
     if (params.id) {
-      loadMovie(params.id as string);
+      loadMovieData(Number(params.id));
     }
   }, [params.id]);
 
@@ -285,11 +298,21 @@ export default function MovieDetailPage() {
     }
   }, [movie]);
 
-  const loadMovie = async (id: string) => {
+  const loadMovieData = async (id: number) => {
     try {
       setLoading(true);
-      const data = await movieApi.getMovieDetails(id);
-      setMovie(data);
+      
+      // Load genres list
+      const genresData = await movieApi.getGenres();
+      setGenresList(genresData.genres);
+      
+      // Load movie details
+      const movieData = await movieApi.getMovieDetails(id);
+      setMovie(movieData);
+      
+      // Load similar movies
+      const similarData = await movieApi.getSimilarMovies(id);
+      setSimilarMovies(similarData.results.slice(0, 8)); // Get first 8 similar movies
     } catch (err) {
       console.error('Error loading movie:', err);
     } finally {
@@ -306,10 +329,10 @@ export default function MovieDetailPage() {
     } else {
       storage.addFavorite({
         id: movie.id,
-        title: movie.primaryTitle,
-        image: movie.primaryImage,
-        rating: movie.averageRating,
-        year: movie.startYear,
+        title: movie.title,
+        image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.jpg',
+        rating: movie.vote_average,
+        year: movie.release_date ? new Date(movie.release_date).getFullYear() : undefined,
         savedAt: new Date().toISOString(),
       });
       setIsFavorite(true);
@@ -343,6 +366,12 @@ export default function MovieDetailPage() {
     );
   }
 
+  const posterUrl = movie.poster_path 
+    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` 
+    : '/placeholder.jpg';
+  
+  const year = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
+
   return (
     <PageContainer>
       <Navbar />
@@ -353,15 +382,18 @@ export default function MovieDetailPage() {
 
         <Hero>
           <PosterContainer>
-            <Poster src={movie.primaryImage} alt={movie.primaryTitle} />
+            <Poster src={posterUrl} alt={movie.title} />
           </PosterContainer>
 
           <InfoSection>
             <TitleSection>
               <div>
-                <Title>{movie.primaryTitle}</Title>
-                {movie.originalTitle !== movie.primaryTitle && (
-                  <OriginalTitle>{movie.originalTitle}</OriginalTitle>
+                <Title>{movie.title}</Title>
+                {movie.original_title !== movie.title && (
+                  <OriginalTitle>{movie.original_title}</OriginalTitle>
+                )}
+                {movie.tagline && (
+                  <OriginalTitle>"{movie.tagline}"</OriginalTitle>
                 )}
               </div>
               <FavoriteButton 
@@ -375,36 +407,38 @@ export default function MovieDetailPage() {
             <MetaInfo>
               <MetaItem>
                 <MetaLabel>Rating</MetaLabel>
-                <Rating>⭐ {movie.averageRating?.toFixed(1)}/10</Rating>
+                <Rating>⭐ {movie.vote_average?.toFixed(1)}/10</Rating>
               </MetaItem>
               <MetaItem>
                 <MetaLabel>Votes</MetaLabel>
-                <MetaValue>{movie.numVotes?.toLocaleString()}</MetaValue>
+                <MetaValue>{movie.vote_count?.toLocaleString()}</MetaValue>
               </MetaItem>
               <MetaItem>
                 <MetaLabel>Year</MetaLabel>
-                <MetaValue>{movie.startYear}</MetaValue>
+                <MetaValue>{year}</MetaValue>
               </MetaItem>
-              <MetaItem>
-                <MetaLabel>Runtime</MetaLabel>
-                <MetaValue>{movie.runtimeMinutes} min</MetaValue>
-              </MetaItem>
-              {movie.metascore && (
+              {movie.runtime && (
                 <MetaItem>
-                  <MetaLabel>Metascore</MetaLabel>
-                  <MetaValue>{movie.metascore}/100</MetaValue>
+                  <MetaLabel>Runtime</MetaLabel>
+                  <MetaValue>{movie.runtime} min</MetaValue>
+                </MetaItem>
+              )}
+              {movie.status && (
+                <MetaItem>
+                  <MetaLabel>Status</MetaLabel>
+                  <MetaValue>{movie.status}</MetaValue>
                 </MetaItem>
               )}
             </MetaInfo>
 
-            <Description>{movie.description}</Description>
+            <Description>{movie.overview}</Description>
 
             {movie.genres && movie.genres.length > 0 && (
               <Section>
                 <SectionTitle>Genres</SectionTitle>
                 <TagList>
                   {movie.genres.map((genre) => (
-                    <Tag key={genre}>{genre}</Tag>
+                    <Tag key={genre.id}>{genre.name}</Tag>
                   ))}
                 </TagList>
               </Section>
@@ -413,50 +447,65 @@ export default function MovieDetailPage() {
         </Hero>
 
         <DetailGrid>
-          {movie.productionCompanies && movie.productionCompanies.length > 0 && (
+          {movie.production_companies && movie.production_companies.length > 0 && (
             <DetailCard>
               <DetailTitle>Production Companies</DetailTitle>
               <DetailValue>
-                {movie.productionCompanies.map(c => c.name).join(', ')}
+                {movie.production_companies.map(c => c.name).join(', ')}
               </DetailValue>
             </DetailCard>
           )}
 
-          {movie.countriesOfOrigin && movie.countriesOfOrigin.length > 0 && (
+          {movie.production_countries && movie.production_countries.length > 0 && (
             <DetailCard>
               <DetailTitle>Countries</DetailTitle>
-              <DetailValue>{movie.countriesOfOrigin.join(', ')}</DetailValue>
+              <DetailValue>{movie.production_countries.map(c => c.name).join(', ')}</DetailValue>
             </DetailCard>
           )}
 
-          {movie.spokenLanguages && movie.spokenLanguages.length > 0 && (
+          {movie.spoken_languages && movie.spoken_languages.length > 0 && (
             <DetailCard>
               <DetailTitle>Languages</DetailTitle>
-              <DetailValue>{movie.spokenLanguages.join(', ')}</DetailValue>
+              <DetailValue>{movie.spoken_languages.map(l => l.name).join(', ')}</DetailValue>
             </DetailCard>
           )}
 
-          {movie.contentRating && (
-            <DetailCard>
-              <DetailTitle>Content Rating</DetailTitle>
-              <DetailValue>{movie.contentRating}</DetailValue>
-            </DetailCard>
-          )}
-
-          {movie.budget && (
+          {movie.budget && movie.budget > 0 && (
             <DetailCard>
               <DetailTitle>Budget</DetailTitle>
               <DetailValue>${movie.budget.toLocaleString()}</DetailValue>
             </DetailCard>
           )}
 
-          {movie.grossWorldwide && (
+          {movie.revenue && movie.revenue > 0 && (
             <DetailCard>
-              <DetailTitle>Worldwide Gross</DetailTitle>
-              <DetailValue>${movie.grossWorldwide.toLocaleString()}</DetailValue>
+              <DetailTitle>Revenue</DetailTitle>
+              <DetailValue>${movie.revenue.toLocaleString()}</DetailValue>
+            </DetailCard>
+          )}
+
+          {movie.popularity && (
+            <DetailCard>
+              <DetailTitle>Popularity</DetailTitle>
+              <DetailValue>{movie.popularity.toFixed(0)}</DetailValue>
             </DetailCard>
           )}
         </DetailGrid>
+
+        {similarMovies.length > 0 && (
+          <SimilarSection>
+            <SimilarTitle>Similar Movies You Might Like</SimilarTitle>
+            <SimilarGrid>
+              {similarMovies.map((similarMovie) => (
+                <MovieCard 
+                  key={similarMovie.id} 
+                  movie={similarMovie}
+                  genres={genresList}
+                />
+              ))}
+            </SimilarGrid>
+          </SimilarSection>
+        )}
       </Container>
     </PageContainer>
   );

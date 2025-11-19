@@ -77,5 +77,14 @@ export const movieApi = {
         language: 'en-US'
       }
     }),
+
+    // Get movie details by ID
+getMovieDetails: (movieId: number) =>
+  apiFetch<any>({
+    endpoint: `/movie/${movieId}`,
+    params: {
+      language: 'en-US'
+    }
+  }),
 };
 

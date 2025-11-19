@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { movieApi } from '../lib/api';
 import { storage } from '../lib/storage';
-import { Movie } from '../types/movie';
+import { MovieTM, Genre } from '../types/movie';
 import { 
   getRecommendationsFromFavorites,
   getTrendingRecommendations,
@@ -166,7 +166,8 @@ const ErrorMessage = styled.div`
 `;
 
 export default function RecommendationsPage() {
-  const [allMovies, setAllMovies] = useState<Movie[]>([]);
+  const [allMovies, setAllMovies] = useState<MovieTM[]>([]);
+  const [genres, setGenres] = useState<Genre[]>([]);
   const [personalizedRecs, setPersonalizedRecs] = useState<RecommendationResult[]>([]);
   const [trendingRecs, setTrendingRecs] = useState<RecommendationResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,15 +182,27 @@ export default function RecommendationsPage() {
       setLoading(true);
       setError(null);
 
-      // Load all movies
-      const data = await movieApi.getTop250Movies();
+      // Load genres
+      const genresData = await movieApi.getGenres();
+      setGenres(genresData.genres);
+
+      // Load movies (get multiple pages for better recommendations)
+      const page1 = await movieApi.getMovies(1);
+      const page2 = await movieApi.getMovies(2);
+      const page3 = await movieApi.getMovies(3);
       
-      if (!Array.isArray(data)) {
+      const allMoviesData = [
+        ...page1.results,
+        ...page2.results,
+        ...page3.results
+      ];
+      
+      if (!Array.isArray(allMoviesData)) {
         setError('Invalid data format received from API');
         return;
       }
 
-      setAllMovies(data);
+      setAllMovies(allMoviesData);
 
       // Get user's favorites
       const favorites = storage.getFavorites();
@@ -199,14 +212,15 @@ export default function RecommendationsPage() {
       if (favoriteIds.length > 0) {
         const personalized = getRecommendationsFromFavorites(
           favoriteIds,
-          data,
+          allMoviesData,
+          genresData.genres,
           12
         );
         setPersonalizedRecs(personalized);
       }
 
       // Generate trending recommendations
-      const trending = getTrendingRecommendations(data, 12);
+      const trending = getTrendingRecommendations(allMoviesData, 12);
       setTrendingRecs(trending);
 
     } catch (err) {
@@ -268,7 +282,7 @@ export default function RecommendationsPage() {
             </SectionHeader>
             <Grid>
               {personalizedRecs.map(({ movie }) => (
-                <MovieCard key={movie.id} movie={movie} />
+                <MovieCard key={movie.id} movie={movie} genres={genres} />
               ))}
             </Grid>
           </Section>
@@ -301,7 +315,7 @@ export default function RecommendationsPage() {
           </SectionHeader>
           <Grid>
             {trendingRecs.map(({ movie }) => (
-              <MovieCard key={movie.id} movie={movie} />
+              <MovieCard key={movie.id} movie={movie} genres={genres} />
             ))}
           </Grid>
         </Section>
