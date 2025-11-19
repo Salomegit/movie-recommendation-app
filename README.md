@@ -1,13 +1,13 @@
 # MovieHub - Movie Recommendation App
 
-A modern, responsive movie recommendation application built with Next.js, TypeScript, and Styled Components. Browse top-rated movies, save favorites, and explore detailed movie information.
+A modern, responsive movie recommendation application built with Next.js, TypeScript, and The Movie Database (TMDB) API.
 
 ## 🎬 Features
 
-- **Browse Top 250 Movies**: Explore the highest-rated movies from IMDb
+- **Discover movies**: Explore the highest-rated movies from TMDB
 - **Dynamic Movie Details**: View comprehensive information including ratings, genres, cast, and production details
 - **Favorites System**: Save your favorite movies locally with persistent storage
-- **Real-time Search**: Filter movies by title, description, or genre
+- **Real-time Search**: Filter movies by genre
 - **Responsive Design**: Fully optimized for desktop, tablet, and mobile devices
 - **Smooth Animations**: Enhanced user experience with interactive hover effects and transitions
 
@@ -15,15 +15,15 @@ A modern, responsive movie recommendation application built with Next.js, TypeSc
 
 - **Next.js 14**: React framework with App Router
 - **TypeScript**: Type-safe development
-- **Styled Components**: CSS-in-JS styling solution
-- **RapidAPI (IMDb)**: Movie data integration
+- **Styled Components**: Clean styling solution
+- **TMDB API**: Movie data and images
 - **Local Storage**: Client-side data persistence
 
 ## 📋 Prerequisites
 
 - Node.js 18+ 
 - npm or yarn
-- RapidAPI account and IMDb API key
+- TMDB API account and IMDb API key
 
 ## 🛠️ Installation
 
@@ -42,10 +42,10 @@ yarn install
 
 3. **Set up API credentials**
 
-Update the API configuration in `lib/api.ts`:
-```typescript
-const RAPIDAPI_KEY = 'your-api-key-here';
-const RAPIDAPI_HOST = 'imdb236.p.rapidapi1.com';
+Update the API configuration in `.env.local`:
+```
+NEXT_PUBLIC_TMDB_ACCESS_TOKEN=your_token_here
+
 ```
 
 4. **Run the development server**
@@ -74,7 +74,8 @@ movie-recommendation-app/
 │   └── registry.tsx          # Styled Components registry
 ├── components/
 │   ├── MovieCard.tsx         # Movie card component
-│   ├── MovieGrid.tsx         # Movie grid layout
+│   ├── MovieGrid.tsx  
+|   ├── GenreFilter.tsx   # Movie grid layout
 │   ├── Navbar.tsx            # Navigation bar
 │   └── SearchBar.tsx         # Search component
 ├── lib/
@@ -107,12 +108,11 @@ export const storage = {
 ```
 
 ### API Integration
-```typescript
-// lib/api.ts
-export const movieApi = {
-  getTop250Movies: () => apiFetch({ endpoint: '/imdb/top250-movies' }),
-  getMovieDetails: (imdbId: string) => apiFetch({ endpoint: `/imdb/id/${imdbId}` }),
-};
+```
+/discover/movie - Browse popular movies
+/movie/{id} - Get movie details
+/movie/{id}/similar - Get similar movies
+/genre/movie/list - Get all genres
 ```
 
 ## 🎨 Styling
@@ -132,11 +132,13 @@ The app uses Styled Components for styling with a modern dark theme:
 
 ## 🔑 API Endpoints Used
 
-- `GET /imdb/top250-movies` - Fetch top 250 movies
-- `GET /imdb/id/{imdbId}` - Get movie details
-- `GET /imdb/search?query={query}` - Search movies
-- `GET /imdb/most-popular-movies` - Get popular movies
-- `GET /imdb/top-box-office` - Get box office hits
+- /discover/movie – Popular movies
+
+- /movie/{id} – Movie details
+
+- /movie/{id}/similar – Similar movies
+
+- /genre/movie/list – All genres
 
 ## 🚀 Deployment
 
@@ -148,38 +150,6 @@ The app uses Styled Components for styling with a modern dark theme:
 4. Configure environment variables (API keys)
 5. Deploy!
 
-### Deploy to Netlify
-
-1. Build the application:
-```bash
-npm run build
-```
-
-2. Deploy the `out` folder to Netlify
-
-## 📝 Git Commit Convention
-
-This project follows a structured commit message format:
-
-- `feat:` New features
-- `fix:` Bug fixes
-- `style:` UI/styling changes
-- `docs:` Documentation updates
-- `refactor:` Code refactoring
-
-Example:
-```bash
-git commit -m "feat: add movie search functionality"
-git commit -m "style: improve movie card hover effects"
-git commit -m "fix: resolve loading state issue"
-```
-
-## 🧪 Testing
-
-Run type checking:
-```bash
-npm run type-check
-```
 
 Build for production:
 ```bash
@@ -200,10 +170,5 @@ This project is licensed under the MIT License.
 
 ## 👨‍💻 Author
 
-Your Name - ProDev FE Challenge
+Salome Githinji - ProDev FE Challenge
 
-## 🙏 Acknowledgments
-
-- RapidAPI for IMDb data
-- Next.js team for the amazing framework
-- Styled Components for the styling solution
