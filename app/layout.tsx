@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: 'MovieHub - Discover Amazing Movies',
   description: 'Browse and save your favorite movies from the top-rated collection',
 };
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,6 +26,11 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{
+          overflowX: 'hidden',
+          width: '100%',
+          position: 'relative'
+        }}
       >
         {children}
       </body>
