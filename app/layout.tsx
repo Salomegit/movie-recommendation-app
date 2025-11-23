@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   title: 'MovieHub - Discover Amazing Movies',
   description: 'Browse and save your favorite movies from the top-rated collection',
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
