@@ -171,9 +171,7 @@ export function getRecommendationsFromFavorites(
     .slice(0, limit);
 }
 
-/**
- * Get recommendations based on genre preferences
- */
+
 export function getRecommendationsByGenres(
   preferredGenreIds: number[],
   allMovies: MovieTM[],
@@ -212,9 +210,7 @@ export function getRecommendationsByGenres(
     .slice(0, limit);
 }
 
-/**
- * Get trending recommendations (popular + recent + highly rated)
- */
+
 export function getTrendingRecommendations(
   allMovies: MovieTM[],
   limit: number = 10
@@ -272,17 +268,17 @@ export function getTrendingRecommendations(
     .slice(0, limit);
 }
 
-/**
- * Get "Because you watched X" recommendations
- */
-export function getBecauseYouWatchedRecommendations(
-  watchedMovieId: number,
-  allMovies: MovieTM[],
-  genres: Array<{ id: number; name: string }>,
-  limit: number = 6
-): RecommendationResult[] {
-  const watchedMovie = allMovies.find(m => m.id === watchedMovieId);
-  if (!watchedMovie) return [];
+// /**
+//  * Get "Because you watched X" recommendations
+//  */
+// export function getBecauseYouWatchedRecommendations(
+//   watchedMovieId: number,
+//   allMovies: MovieTM[],
+//   genres: Array<{ id: number; name: string }>,
+//   limit: number = 6
+// ): RecommendationResult[] {
+//   const watchedMovie = allMovies.find(m => m.id === watchedMovieId);
+//   if (!watchedMovie) return [];
   
-  return getRecommendationsForMovie(watchedMovie, allMovies, genres, limit);
-}
+//   return getRecommendationsForMovie(watchedMovie, allMovies, genres, limit);
+// }

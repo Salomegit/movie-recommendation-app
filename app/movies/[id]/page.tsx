@@ -1,11 +1,268 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import styled from 'styled-components';
 import { movieApi } from '../../lib/api';
 import { storage } from '../../lib/storage';
 import { MovieTM } from '../../types/movie';
 import Navbar from '../../components/Navbar';
 import MovieCard from '../../components/MovieCard';
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  background: #0a0a0a;
+`;
+
+const BackButton = styled.button`
+  background: rgba(255, 255, 255, 0.1);
+  border: none; 
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+`;
+
+const Container = styled.main`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+`;
+
+const Hero = styled.div`
+  position: relative;
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+`;
+
+const PosterContainer = styled.div`
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+`;
+
+const Poster = styled.img`
+  width: 100%;
+  height: auto;
+  display: block;
+`;
+
+const InfoSection = styled.div`
+  color: #fff;
+`;
+
+const TitleSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 20px;
+  margin-bottom: 20px;
+`;
+
+const Title = styled.h1`
+  font-size: 42px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+
+  @media (max-width: 768px) {
+    font-size: 32px;
+  }
+`;
+
+const OriginalTitle = styled.p`
+  font-size: 18px;
+  color: #999;
+  margin: 0 0 20px 0;
+  font-style: italic;
+`;
+
+const FavoriteButton = styled.button<{ $isFavorite: boolean }>`
+  background: ${props => props.$isFavorite ? '#e50914' : 'rgba(255, 255, 255, 0.1)'};
+  border: 2px solid ${props => props.$isFavorite ? '#e50914' : '#333'};
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+
+  &:hover {
+    transform: scale(1.05);
+    background: ${props => props.$isFavorite ? '#ff0a16' : 'rgba(255, 255, 255, 0.2)'};
+  }
+`;
+
+const MetaInfo = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+`;
+
+const MetaItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const MetaLabel = styled.span`
+  font-size: 12px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const MetaValue = styled.span`
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+`;
+
+const Rating = styled(MetaValue)`
+  color: #ffd700;
+`;
+
+const Description = styled.p`
+  font-size: 18px;
+  line-height: 1.8;
+  color: #ccc;
+  margin-bottom: 30px;
+`;
+
+const Section = styled.div`
+  margin-bottom: 30px;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  color: #fff;
+`;
+
+const TagList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+const Tag = styled.span`
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid #e50914;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+`;
+
+const DetailGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+`;
+
+const DetailCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+`;
+
+const DetailTitle = styled.h3`
+  font-size: 16px;
+  color: #999;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const DetailValue = styled.p`
+  font-size: 16px;
+  color: #fff;
+  margin: 0;
+  line-height: 1.6;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+`;
+
+const Spinner = styled.div`
+  border: 4px solid #333;
+  border-top: 4px solid #e50914;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const SimilarSection = styled.section`
+  margin-top: 60px;
+  padding-top: 40px;
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+`;
+
+const SimilarTitle = styled.h2`
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 30px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &::before {
+    content: '🎬';
+    font-size: 32px;
+  }
+`;
+
+const SimilarGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+`;
 
 interface MovieDetails extends MovieTM {
   runtime?: number;
@@ -54,7 +311,7 @@ export default function MovieDetailPage() {
       
       // Load similar movies
       const similarData = await movieApi.getSimilarMovies(id);
-      setSimilarMovies(similarData.results.slice(0, 8));
+      setSimilarMovies(similarData.results.slice(0, 8)); // Get first 8 similar movies
     } catch (err) {
       console.error('Error loading movie:', err);
     } finally {
@@ -83,31 +340,28 @@ export default function MovieDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
+      <PageContainer>
         <Navbar />
-        <main className="max-w-7xl mx-auto px-5">
-          <div className="flex justify-center items-center min-h-[400px]">
-            <div className="w-12 h-12 border-4 border-[#333] border-t-[#e50914] rounded-full animate-spin" />
-          </div>
-        </main>
-      </div>
+        <Container>
+          <LoadingContainer>
+            <Spinner />
+          </LoadingContainer>
+        </Container>
+      </PageContainer>
     );
   }
 
   if (!movie) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
+      <PageContainer>
         <Navbar />
-        <main className="max-w-7xl mx-auto px-5">
-          <button 
-            onClick={() => router.back()}
-            className="bg-white/10 border-none text-white px-6 py-3 rounded-lg cursor-pointer text-base my-5 flex items-center gap-2 transition-all duration-300 hover:bg-white/20"
-          >
+        <Container>
+          <BackButton onClick={() => router.back()}>
             ← Back
-          </button>
-          <p className="text-white text-center">Movie not found</p>
-        </main>
-      </div>
+          </BackButton>
+          <p style={{ color: '#fff', textAlign: 'center' }}>Movie not found</p>
+        </Container>
+      </PageContainer>
     );
   }
 
@@ -118,190 +372,129 @@ export default function MovieDetailPage() {
   const year = movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A';
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <PageContainer>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-5">
-        <button 
-          onClick={() => router.back()}
-          className="bg-white/10 border-none text-white px-6 py-3 rounded-lg cursor-pointer text-base my-5 flex items-center gap-2 transition-all duration-300 hover:bg-white/20"
-        >
+      <Container>
+        <BackButton onClick={() => router.back()}>
           ← Back
-        </button>
+        </BackButton>
 
-        {/* Hero Section */}
-        <div className="relative grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-10 mb-10">
-          {/* Poster */}
-          <div className="rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-            <img 
-              src={posterUrl} 
-              alt={movie.title}
-              className="w-full h-auto block"
-            />
-          </div>
+        <Hero>
+          <PosterContainer>
+            <Poster src={posterUrl} alt={movie.title} />
+          </PosterContainer>
 
-          {/* Info Section */}
-          <div className="text-white">
-            {/* Title Section */}
-            <div className="flex justify-between items-start gap-5 mb-5">
+          <InfoSection>
+            <TitleSection>
               <div>
-                <h1 className="text-4xl lg:text-[42px] font-extrabold m-0 mb-2.5">
-                  {movie.title}
-                </h1>
+                <Title>{movie.title}</Title>
                 {movie.original_title !== movie.title && (
-                  <p className="text-lg text-[#999] m-0 mb-5 italic">
-                    {movie.original_title}
-                  </p>
+                  <OriginalTitle>{movie.original_title}</OriginalTitle>
                 )}
                 {movie.tagline && (
-                  <p className="text-lg text-[#999] m-0 mb-5 italic">
-                    "{movie.tagline}"
-                  </p>
+                  <OriginalTitle>"{movie.tagline}"</OriginalTitle>
                 )}
               </div>
-              <button 
+              <FavoriteButton 
+                $isFavorite={isFavorite}
                 onClick={handleFavoriteToggle}
-                className={`${
-                  isFavorite 
-                    ? 'bg-[#e50914] border-[#e50914] hover:bg-[#ff0a16]' 
-                    : 'bg-white/10 border-[#333] hover:bg-white/20'
-                } border-2 text-white px-6 py-3 rounded-full cursor-pointer text-base flex items-center gap-2 transition-all duration-300 whitespace-nowrap hover:scale-105`}
               >
                 {isFavorite ? '❤️ Favorited' : '🤍 Add to Favorites'}
-              </button>
-            </div>
+              </FavoriteButton>
+            </TitleSection>
 
-            {/* Meta Info */}
-            <div className="flex flex-wrap gap-5 mb-7 p-5 bg-white/5 rounded-xl">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-[#999] uppercase tracking-wider">Rating</span>
-                <span className="text-lg font-semibold text-[#ffd700]">
-                  ⭐ {movie.vote_average?.toFixed(1)}/10
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-[#999] uppercase tracking-wider">Votes</span>
-                <span className="text-lg font-semibold text-white">
-                  {movie.vote_count?.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-[#999] uppercase tracking-wider">Year</span>
-                <span className="text-lg font-semibold text-white">{year}</span>
-              </div>
+            <MetaInfo>
+              <MetaItem>
+                <MetaLabel>Rating</MetaLabel>
+                <Rating>⭐ {movie.vote_average?.toFixed(1)}/10</Rating>
+              </MetaItem>
+              <MetaItem>
+                <MetaLabel>Votes</MetaLabel>
+                <MetaValue>{movie.vote_count?.toLocaleString()}</MetaValue>
+              </MetaItem>
+              <MetaItem>
+                <MetaLabel>Year</MetaLabel>
+                <MetaValue>{year}</MetaValue>
+              </MetaItem>
               {movie.runtime && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-[#999] uppercase tracking-wider">Runtime</span>
-                  <span className="text-lg font-semibold text-white">{movie.runtime} min</span>
-                </div>
+                <MetaItem>
+                  <MetaLabel>Runtime</MetaLabel>
+                  <MetaValue>{movie.runtime} min</MetaValue>
+                </MetaItem>
               )}
               {movie.status && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-[#999] uppercase tracking-wider">Status</span>
-                  <span className="text-lg font-semibold text-white">{movie.status}</span>
-                </div>
+                <MetaItem>
+                  <MetaLabel>Status</MetaLabel>
+                  <MetaValue>{movie.status}</MetaValue>
+                </MetaItem>
               )}
-            </div>
+            </MetaInfo>
 
-            {/* Description */}
-            <p className="text-lg leading-[1.8] text-[#ccc] mb-7">
-              {movie.overview}
-            </p>
+            <Description>{movie.overview}</Description>
 
-            {/* Genres */}
             {movie.genres && movie.genres.length > 0 && (
-              <div className="mb-7">
-                <h2 className="text-2xl font-bold m-0 mb-4 text-white">Genres</h2>
-                <div className="flex flex-wrap gap-2.5">
+              <Section>
+                <SectionTitle>Genres</SectionTitle>
+                <TagList>
                   {movie.genres.map((genre) => (
-                    <span 
-                      key={genre.id}
-                      className="bg-[#e50914]/20 border border-[#e50914] text-white px-4 py-2 rounded-full text-sm"
-                    >
-                      {genre.name}
-                    </span>
+                    <Tag key={genre.id}>{genre.name}</Tag>
                   ))}
-                </div>
-              </div>
+                </TagList>
+              </Section>
             )}
-          </div>
-        </div>
+          </InfoSection>
+        </Hero>
 
-        {/* Detail Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
+        <DetailGrid>
           {movie.production_companies && movie.production_companies.length > 0 && (
-            <div className="bg-white/5 p-5 rounded-xl">
-              <h3 className="text-base text-[#999] m-0 mb-3 uppercase tracking-wider">
-                Production Companies
-              </h3>
-              <p className="text-base text-white m-0 leading-[1.6]">
+            <DetailCard>
+              <DetailTitle>Production Companies</DetailTitle>
+              <DetailValue>
                 {movie.production_companies.map(c => c.name).join(', ')}
-              </p>
-            </div>
+              </DetailValue>
+            </DetailCard>
           )}
 
           {movie.production_countries && movie.production_countries.length > 0 && (
-            <div className="bg-white/5 p-5 rounded-xl">
-              <h3 className="text-base text-[#999] m-0 mb-3 uppercase tracking-wider">
-                Countries
-              </h3>
-              <p className="text-base text-white m-0 leading-[1.6]">
-                {movie.production_countries.map(c => c.name).join(', ')}
-              </p>
-            </div>
+            <DetailCard>
+              <DetailTitle>Countries</DetailTitle>
+              <DetailValue>{movie.production_countries.map(c => c.name).join(', ')}</DetailValue>
+            </DetailCard>
           )}
 
           {movie.spoken_languages && movie.spoken_languages.length > 0 && (
-            <div className="bg-white/5 p-5 rounded-xl">
-              <h3 className="text-base text-[#999] m-0 mb-3 uppercase tracking-wider">
-                Languages
-              </h3>
-              <p className="text-base text-white m-0 leading-[1.6]">
-                {movie.spoken_languages.map(l => l.name).join(', ')}
-              </p>
-            </div>
+            <DetailCard>
+              <DetailTitle>Languages</DetailTitle>
+              <DetailValue>{movie.spoken_languages.map(l => l.name).join(', ')}</DetailValue>
+            </DetailCard>
           )}
 
           {movie.budget && movie.budget > 0 && (
-            <div className="bg-white/5 p-5 rounded-xl">
-              <h3 className="text-base text-[#999] m-0 mb-3 uppercase tracking-wider">
-                Budget
-              </h3>
-              <p className="text-base text-white m-0 leading-[1.6]">
-                ${movie.budget.toLocaleString()}
-              </p>
-            </div>
+            <DetailCard>
+              <DetailTitle>Budget</DetailTitle>
+              <DetailValue>${movie.budget.toLocaleString()}</DetailValue>
+            </DetailCard>
           )}
 
           {movie.revenue && movie.revenue > 0 && (
-            <div className="bg-white/5 p-5 rounded-xl">
-              <h3 className="text-base text-[#999] m-0 mb-3 uppercase tracking-wider">
-                Revenue
-              </h3>
-              <p className="text-base text-white m-0 leading-[1.6]">
-                ${movie.revenue.toLocaleString()}
-              </p>
-            </div>
+            <DetailCard>
+              <DetailTitle>Revenue</DetailTitle>
+              <DetailValue>${movie.revenue.toLocaleString()}</DetailValue>
+            </DetailCard>
           )}
 
           {movie.popularity && (
-            <div className="bg-white/5 p-5 rounded-xl">
-              <h3 className="text-base text-[#999] m-0 mb-3 uppercase tracking-wider">
-                Popularity
-              </h3>
-              <p className="text-base text-white m-0 leading-[1.6]">
-                {movie.popularity.toFixed(0)}
-              </p>
-            </div>
+            <DetailCard>
+              <DetailTitle>Popularity</DetailTitle>
+              <DetailValue>{movie.popularity.toFixed(0)}</DetailValue>
+            </DetailCard>
           )}
-        </div>
+        </DetailGrid>
 
-        {/* Similar Movies */}
         {similarMovies.length > 0 && (
-          <section className="mt-15 pt-10 border-t-2 border-white/10">
-            <h2 className="text-3xl font-bold text-white m-0 mb-7 flex items-center gap-3 before:content-['🎬'] before:text-[32px]">
-              Similar Movies You Might Like
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          <SimilarSection>
+            <SimilarTitle>Similar Movies You Might Like</SimilarTitle>
+            <SimilarGrid>
               {similarMovies.map((similarMovie) => (
                 <MovieCard 
                   key={similarMovie.id} 
@@ -309,10 +502,10 @@ export default function MovieDetailPage() {
                   genres={genresList}
                 />
               ))}
-            </div>
-          </section>
+            </SimilarGrid>
+          </SimilarSection>
         )}
-      </main>
-    </div>
+      </Container>
+    </PageContainer>
   );
 }

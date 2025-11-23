@@ -1,4 +1,3 @@
-// components/Navbar.tsx
 'use client';
 
 import Link from 'next/link';
@@ -22,6 +21,16 @@ const Container = styled.div`
   justify-content: space-between;
   align-items: center;
   height: 70px;
+
+  @media (max-width: 768px) {
+    padding: 0 16px;
+    height: 60px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0 12px;
+    height: 56px;
+  }
 `;
 
 const Logo = styled(Link)`
@@ -33,6 +42,7 @@ const Logo = styled(Link)`
   align-items: center;
   gap: 8px;
   transition: transform 0.3s ease;
+  flex-shrink: 0;
 
   &:hover {
     transform: scale(1.05);
@@ -40,6 +50,12 @@ const Logo = styled(Link)`
 
   @media (max-width: 768px) {
     font-size: 24px;
+    gap: 6px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 20px;
+    gap: 4px;
   }
 `;
 
@@ -49,7 +65,15 @@ const NavLinks = styled.div`
   align-items: center;
 
   @media (max-width: 768px) {
+    gap: 6px;
+  }
+
+  @media (max-width: 480px) {
     gap: 4px;
+  }
+
+  @media (max-width: 360px) {
+    gap: 2px;
   }
 `;
 
@@ -66,6 +90,7 @@ const NavLink = styled(Link)<{ $isActive: boolean }>`
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 
   &:hover {
     background: rgba(229, 9, 20, 0.1);
@@ -74,22 +99,51 @@ const NavLink = styled(Link)<{ $isActive: boolean }>`
   }
 
   @media (max-width: 768px) {
-    padding: 8px 12px;
+    padding: 8px 14px;
     font-size: 14px;
+    gap: 5px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 8px 12px;
+    font-size: 13px;
   }
 
   @media (max-width: 480px) {
     padding: 8px 10px;
-    font-size: 13px;
+    font-size: 0;
+    gap: 0;
+    min-width: 44px;
+    justify-content: center;
     
     span {
       display: none;
     }
   }
+
+  @media (max-width: 360px) {
+    padding: 6px 8px;
+    min-width: 40px;
+  }
 `;
 
 const Icon = styled.span`
   font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    font-size: 17px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 20px;
+  }
+
+  @media (max-width: 360px) {
+    font-size: 18px;
+  }
 `;
 
 export default function Navbar() {
@@ -106,10 +160,6 @@ export default function Navbar() {
             <Icon>🏠</Icon>
             <span>Home</span>
           </NavLink>
-          {/* <NavLink href="/popular" $isActive={pathname === '/popular'}>
-            <Icon>🔥</Icon>
-            <span>Popular</span>
-          </NavLink> */}
           <NavLink href="/recommendations" $isActive={pathname === '/recommendations'}>
             <Icon>🎯</Icon>
             <span>For You</span>
