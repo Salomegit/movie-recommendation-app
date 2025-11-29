@@ -107,6 +107,21 @@ const LoadMoreContainer = styled.div`
   }
 `;
 
+const ScrollWrapper = styled.div`
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  padding-bottom: 10px;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+  }
+`;
+
 const LoadMoreButton = styled.button`
   background: #e50914;
   color: #fff;
@@ -236,11 +251,14 @@ export default function MovieGrid({
   return (
     <Section>
       {title && <SectionTitle>{title}</SectionTitle>}
+ 
+    <ScrollWrapper>
       <Grid>
-        {displayedMovies.map((movie) => (
+        {movies.slice(0, displayCount).map(movie => (
           <MovieCard key={movie.id} movie={movie} />
         ))}
       </Grid>
+    </ScrollWrapper>
       
       {hasMore && onLoadMore && (
         <LoadMoreContainer>

@@ -36,6 +36,10 @@ const ImageContainer = styled.div`
   padding-bottom: 150%;
   overflow: hidden;
   background: #2a2a2a;
+    @media (max-width: 768px) {
+    padding-bottom: 0; /* remove weird aspect ratio constraint */
+    height: 210px;     /* consistent height on scrolling */
+  }
 `;
 
 const Image = styled.img`

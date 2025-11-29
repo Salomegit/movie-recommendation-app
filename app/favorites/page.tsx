@@ -210,7 +210,6 @@ export default function FavoritesPage() {
 
   const loadFavorites = () => {
     const favs = storage.getFavorites();
-    // Sort by most recently added
     setFavorites(favs.sort((a, b) => 
       new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
     ));

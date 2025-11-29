@@ -17,6 +17,20 @@ const PageContainer = styled.div`
   background: #0a0a0a;
 `;
 
+const ScrollWrapper = styled.div`
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 50px;
+    height: 100%;
+    pointer-events: none;
+    background: linear-gradient(to left, rgba(0,0,0,0.5), transparent);
+  }`;
+
 const Container = styled.main`
   max-width: 1400px;
   margin: 0 auto;

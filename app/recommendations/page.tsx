@@ -165,6 +165,57 @@ const ErrorMessage = styled.div`
   margin: 20px 0;
 `;
 
+const MoviesSection = styled.section`
+  margin-top: 20px;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+
+@media (max-width: 768px) {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 10px;
+
+  & > div {
+    flex: 0 0 140px; 
+    scroll-snap-align: start;
+  }
+      & > a {
+    flex: 0 0 140px; /* or 130px if you want smaller */
+  }
+
+  & img {
+    height: 210px;        
+    width: 100%;
+    object-fit: cover;    
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scrollbar-width: none;
+}
+`;
+
+const ScrollWrapper = styled.div`
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 50px;
+    height: 100%;
+    pointer-events: none;
+    background: linear-gradient(to left, rgba(0,0,0,0.5), transparent);
+  }
+`;
+
+
 export default function RecommendationsPage() {
   const [allMovies, setAllMovies] = useState<MovieTM[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -280,11 +331,15 @@ export default function RecommendationsPage() {
                 </SectionSubtitle>
               </div>
             </SectionHeader>
-            <Grid>
+           <ScrollWrapper>
+  <MoviesSection>
+
               {personalizedRecs.map(({ movie }) => (
                 <MovieCard key={movie.id} movie={movie} genres={genres} />
               ))}
-            </Grid>
+            </MoviesSection>
+          </ScrollWrapper>
+
           </Section>
         )}
 
@@ -313,11 +368,13 @@ export default function RecommendationsPage() {
               </SectionSubtitle>
             </div>
           </SectionHeader>
-          <Grid>
+          <ScrollWrapper>
+  <MoviesSection>
             {trendingRecs.map(({ movie }) => (
               <MovieCard key={movie.id} movie={movie} genres={genres} />
             ))}
-          </Grid>
+          </MoviesSection>
+</ScrollWrapper>
         </Section>
       </Container>
     </PageContainer>
